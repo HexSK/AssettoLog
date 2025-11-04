@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_titled_container/flutter_titled_container.dart';
 
 void main() => runApp(const AssettoLogApp());
 
@@ -54,12 +55,85 @@ class AssettoLogNav extends StatefulWidget {
 class _AssettoLogNavState extends State<AssettoLogNav> {
   int currentPageIndex = 0;
   int pastSessionsAmount = 67;
-  int speedKmh = 123;
-  int rpm = 5400;
+  var telemetryData = {
+    "speed": 123.3,
+    "RPM": 5700,
+    "gear": 3,
+    "fuelLeft": 35.8,
+    "litersPerLap": 2.5,
+    "lapNumber": 21,
+    "currentLapTime": 83.534,
+    "bestLapTime": 82.342,
+  };
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+
+    // Define the pages
+    final List<Widget> pages = [
+      /// Live Data Page
+      Center( //Center EVERYTHING
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              "${telemetryData['speed']}",
+              style: TextStyle(
+                fontSize: 120.0,
+                fontFamily: '7 Segments'
+              ),
+            ),
+            Text(
+              "${telemetryData["gear"]}-${telemetryData['RPM']}",
+              style: TextStyle(
+                fontSize: 120.0,
+                fontFamily: '7 Segments'
+              )
+            )
+          ],
+        ),
+      ),
+
+      /// Past Sessions Page
+      Padding(
+        padding: const EdgeInsets.all(8.0),
+        child: Column(
+          children: [
+            Card(
+              child: ListTile(
+                leading: Icon(Icons.folder, color: Colors.greenAccent[400]),
+                title: Text('Session 1', style: theme.textTheme.bodyLarge),
+                subtitle: Text(
+                  'Details about session 1',
+                  style: theme.textTheme.bodyMedium,
+                ),
+              ),
+            ),
+            Card(
+              child: ListTile(
+                leading: Icon(Icons.folder, color: Colors.greenAccent[400]),
+                title: Text('Session 2', style: theme.textTheme.bodyLarge),
+                subtitle: Text(
+                  'Details about session 2',
+                  style: theme.textTheme.bodyMedium,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+
+      /// Settings Page
+      Center(
+        child: Text(
+          "Settings",
+          style: theme.textTheme.titleLarge!.copyWith(
+            color: Colors.greenAccent[400],
+          ),
+        ),
+      ),
+    ];
 
     return Scaffold(
       bottomNavigationBar: NavigationBar(
@@ -95,57 +169,7 @@ class _AssettoLogNavState extends State<AssettoLogNav> {
           ),
         ],
       ),
-      body: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              RichText(
-                text: TextSpan(
-                  children: [
-                    TextSpan(
-                      text: "$speedKmh",
-                      style: TextStyle(
-                        fontFamily: '7 Segments',
-                        fontSize: 150,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.greenAccent[400],
-                      ),
-                    ),
-                    WidgetSpan(
-                      child: Transform.translate(
-                        offset: const Offset(0, 17), // tweak vertical position
-                        child: Text(
-                          "km/h",
-                          style: TextStyle(
-                            fontSize: 50,
-                            color: Colors.greenAccent[400],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                "${rpm.toString()} RPM",
-                style: TextStyle(
-                  fontFamily: '7 Segments',
-                  fontSize: 75.0,
-                  fontWeight: FontWeight.w700,
-                  color: Colors.greenAccent[400],
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
+      body: pages[currentPageIndex], // <-- pick the page
     );
   }
 }
