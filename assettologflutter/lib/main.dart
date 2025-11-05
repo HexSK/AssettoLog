@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_titled_container/flutter_titled_container.dart';
+import 'package:web_socket_channel/web_socket_channel.dart';
+import 'dart:convert';
+import 'dart:async';
+
+String lf = '7 Segments';
 
 void main() => runApp(const AssettoLogApp());
 
@@ -53,9 +57,61 @@ class AssettoLogNav extends StatefulWidget {
 }
 
 class _AssettoLogNavState extends State<AssettoLogNav> {
+  WebSocketChannel? channel;
+  Timer? reconnectionTimer;
+  final Duration reconnectDelay = const Duration(seconds: 1);
+
+  void connectToServer() {
+    try {
+      channel = WebSocketChannel.connect(
+        Uri.parse('ws://0.0.0.0:44148')
+      );
+      
+      channel!.stream.listen(
+        (message) {
+          setState(() {
+            telemetryData = Map<String, dynamic>.from(jsonDecode(message));
+          });
+        },
+        onDone: () {
+          print('WebSocket connection closed. Attempting to reconnect...');
+          scheduleReconnection();
+        },
+        onError: (error) {
+          print('WebSocket error: $error');
+          scheduleReconnection();
+        },
+      );
+    } catch (e) {
+      print('Connection attempt failed: $e');
+      scheduleReconnection();
+    }
+  }
+
+  void scheduleReconnection() {
+    setState(() {
+      telemetryData['serverRunning'] = 0;
+    });
+    
+    reconnectionTimer?.cancel();
+    reconnectionTimer = Timer(reconnectDelay, connectToServer);
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    connectToServer();
+  }
+
+  @override
+  void dispose() {
+    reconnectionTimer?.cancel();
+    channel?.sink.close();
+    super.dispose();
+  }
   int currentPageIndex = 0;
   int pastSessionsAmount = 67;
-  var telemetryData = {
+  Map<String, dynamic> telemetryData = {
     "speed": 123.3,
     "RPM": 5700,
     "gear": 3,
@@ -64,6 +120,7 @@ class _AssettoLogNavState extends State<AssettoLogNav> {
     "lapNumber": 21,
     "currentLapTime": 83.534,
     "bestLapTime": 82.342,
+    "serverRunning": 0
   };
 
   @override
@@ -71,30 +128,70 @@ class _AssettoLogNavState extends State<AssettoLogNav> {
     final theme = Theme.of(context);
 
     // Define the pages
-    final List<Widget> pages = [
+    List<Widget> pages = [
       /// Live Data Page
-      Center( //Center EVERYTHING
+      telemetryData['serverRunning'] == 1 ?
+      Center(
+        //Center EVERYTHING
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Text(
+              "LAP ${telemetryData['lapNumber']}",
+              style: TextStyle(
+                fontSize: 50.0,
+                fontFamily: lf
+              ),
+            ),
+            Text(
               "${telemetryData['speed']}",
               style: TextStyle(
-                fontSize: 120.0,
-                fontFamily: '7 Segments'
+                fontSize: 100.0,
+                fontFamily: lf
               ),
             ),
             Text(
               "${telemetryData["gear"]}-${telemetryData['RPM']}",
               style: TextStyle(
-                fontSize: 120.0,
-                fontFamily: '7 Segments'
-              )
-            )
+                fontSize: 100.0,
+                fontFamily: lf
+              ),
+            ),
+            Text(
+              "${(telemetryData['currentLapTime']! / 60).toStringAsFixed(0)}:${(telemetryData['currentLapTime']! % 60).toStringAsFixed(3)} // ${(telemetryData['bestLapTime']! / 60).toStringAsFixed(0)}:${(telemetryData['bestLapTime']! % 60).toStringAsFixed(3)}",
+              style: TextStyle(
+                fontSize: 50.0, 
+                fontFamily: lf
+              ),
+            ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  "${telemetryData['fuelLeft']}L // ",
+                  style: TextStyle(
+                    fontSize: 50.0,
+                    fontFamily: lf
+                  )
+                ),
+                
+                Text(
+                  "${telemetryData['litersPerLap']}L/LAP",
+                  style: TextStyle(
+                    fontSize: 50.0,
+                    fontFamily: lf
+                  )
+                ),
+              ],
+            ),
           ],
         ),
+      ) : const AlertDialog(
+        title: Text("Server offline"),
+        content: Text("Please check server is running on your computer and you're on the same network as the computer!")
       ),
 
+      
       /// Past Sessions Page
       Padding(
         padding: const EdgeInsets.all(8.0),
